@@ -184,7 +184,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "To use the API, the URL must be 'images.fvcproductions.tech/api/num_colors?src=<img-link>'"
+    return "To use the API, the URL must be 'images.fvcproductions.tech/api/num_colors?src=IMG=LINK-HERE'"
 
 @app.route("/api/num_colors")
 def num_colors():
