@@ -178,13 +178,13 @@ import logging
 
 url_tmpfile_dict = {}
 app = Flask(__name__)
-# handler = logging.FileHandler('flask.log')
+# handler = logging.FileHandler('flask.log')f
 # handler.setLevel(logging.INFO)
 # app.logger.addHandler(handler)
 
 @app.route("/")
 def home():
-    return "To use the API, the URL must be `images.gaobocn.com/api/num_colors?src=https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2@2x.png`."
+    return "To use the API, the URL must be 'images.fvcproductions.tech/api/num_colors?src=<img-link>'"
 
 @app.route("/api/num_colors")
 def num_colors():
