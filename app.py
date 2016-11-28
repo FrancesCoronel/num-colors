@@ -24,44 +24,62 @@ def custom400(error):
     response = jsonify({'message': error.description})
     return response, 400
 
-def nocache(view):
-    """
-    no cache decorator. used for health check
-    """
-    @wraps(view)
-    def no_cache(*args, **kwargs):
-        response = make_response(view(*args, **kwargs))
-        response.headers['Last-Modified'] = datetime.now()
-        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '-1'
-        return response
+# def nocache(view):
+#     """
+#     no cache decorator. used for health check
+#     """
+#     @wraps(view)
+#     def no_cache(*args, **kwargs):
+#         response = make_response(view(*args, **kwargs))
+#         response.headers['Last-Modified'] = datetime.now()
+#         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+#         response.headers['Pragma'] = 'no-cache'
+#         response.headers['Expires'] = '-1'
+#         return response
 
-    return update_wrapper(no_cache, view)
+#     return update_wrapper(no_cache, view)
 
 @app.route('/')
 def home():
     return 'Visit http://images.fvcproductions.tech/api/num_colors?src=SOMEURL'
 
+#/api/num_colors?src=<imageurl>
+# API router
 @app.route('/api/num_colors', methods=['GET'])
-def numColors():
-    img = request.args.get('src')
-    if img is None or img == "":
-        abort(500)
-    else:
-        try:
-            filename = img.split('/')[-1]
-            local = "imgs/"+filename
-            urllib.request.urlretrieve(img, local)
-            colors = subprocess.run(["identify", "-format", "%k", local],
-                                    stdout=subprocess.PIPE)
-#            os.remove(local)
-            if(colors.returncode == 0):
-                return colors.stdout
-            else:
-                abort(500)
-        except:
-            abort(500)
+def api():
+    src = request.args.get('src')
+    image_colors = count_colors(src)
+    return image_colors
+
+# cache already processed images
+# def check_count_cache(src):
+#     c = SqliteCache("cache")
+#     color_count = c.get(src)
+#     if color_count is None:
+#         return None
+#     else:
+#         return color_count
+
+def count_colors(src):
+    # color_count = check_count_cache(src)
+    # if color_count:
+    #     return color_count
+    # else:
+    # takes http://site.com/picture.
+    image_name = src.split('/')[-1]
+    url_name = src.replace('/','_')
+    url_name = url_name[len(url_name)-20:]
+    # for python2 use urllib.urlretrieve(src, url_name), python3 use urllib.request.urlretrieve(src, url_name)
+    urllib.request.urlretrieve(src, url_name)
+    proc_cmd = "identify -format %k " + url_name
+    color_count = os.popen(proc_cmd).read()
+    # remove file
+    del_cmd = "rm " + url_name
+    os.system(del_cmd)
+    return color_count
+    # store url and count in cache
+    # c = SqliteCache("cache")
+    # c.set(src, color_count)
 
 # @app.route('/favicon.ico/')
 # def favicon():
@@ -138,10 +156,10 @@ def numColors():
 #     return img
 
 
-@app.route('/health/')
-@nocache
-def health_check():
-    return jsonify({'health': 'ok', 'commit_hash': os.environ.get('COMMIT_HASH')})
+# @app.route('/health/')
+# @nocache
+# def health_check():
+#     return jsonify({'health': 'ok', 'commit_hash': os.environ.get('COMMIT_HASH')})
 
 if __name__ == '__main__':
     app.run()
