@@ -1,6 +1,6 @@
 {
-  "name": "jinageresizer",
-  "description": "Image resizing web service",
-  "repository": "https://github.com/jinpark/imageresizer",
-  "keywords": ["python", "flask", "image", "resize"]
+  "name": "num-colors",
+  "description": "Given a URL of an image, this returns the number of colors in that image using image-magick",
+  "repository": "https://github.com/fvcproductions/num-colors",
+  "keywords": ["python", "flask", "image", "colors"]
 }

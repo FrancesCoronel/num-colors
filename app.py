@@ -17,7 +17,7 @@ app = Flask(__name__)
 stream_handler = logging.StreamHandler()
 app.logger.addHandler(stream_handler)
 app.logger.setLevel(logging.INFO)
-app.logger.info('jinageresizer startup')
+app.logger.info('num-colors startup')
 
 @app.errorhandler(400)
 def custom400(error):
@@ -41,87 +41,101 @@ def nocache(view):
 
 @app.route('/')
 def home():
-    return redirect("https://github.com/jinpark/imageresizer")
+    return 'Visit http://images.fvcproductions.tech/api/num_colors?src=SOMEURL'
 
-@app.route('/favicon.ico/')
-def favicon():
-    """
-    I hate favicons. ugh
-    """
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico', mimetype='image/png')
-
-@app.route('/<path:url>/')
-def convert(url):
-    query_string = request.args
-    try:
-        r = requests.get(url, timeout=1)
-        filename, file_ext = os.path.splitext(os.path.basename(urlparse(url).path))
-        if 'image' not in r.headers['content-type']:
-            app.logger.error(url + " is not an image.")
-            abort(400, url + " is not an image.")
-    except:
-        app.logger.exception("Error while getting url: " + url)
-        abort(400, "Error while getting url: " + url)
-    try:
-        with Image(file=StringIO(r.content)) as img:
-            if query_string.get('type') in ['jpeg', 'jpg', 'png', 'pjeg']:
-                img.format = query_string.get('type')
-
-            img = resize(img, query_string.get('rwidth'), query_string.get('rheight'))
-
-            img = crop(img, query_string.get('cwidth'), query_string.get('cheight'), query_string.get('gravity'))
-
-            temp_file = NamedTemporaryFile(mode='w+b',suffix=img.format)
-            img.save(file=temp_file)
-            temp_file.seek(0,0)
-            response = send_file(temp_file, mimetype=img.mimetype)
-            return response
-    except MissingDelegateError:
-        abort(400, 'Image is unusable')
-
-
-
-
-def resize(img, width=None, height=None):
-    if not width and not height:
-        return img
-    if width:
+@app.route('/api/num_colors', methods=['GET'])
+def numColors():
+    img = request.args.get('src')
+    if img is None or img == "":
+        abort(500)
+    else:
         try:
-            width = int(width)
-        except ValueError:
-            app.logger.exception("rwidth is invalid: " + width)
-            abort(400, "rwidth is invalid: " + width)
-    if height:
-        try:
-            height = int(height)
-        except ValueError:
-            app.logger.exception("rheight is invalid: " + height)
-            abort(400, "rheight is invalid: " + height)
-    if width and height:
-        img.resize(width, height)
-    if width and not height:
-        img.transform(resize=str(width))
-    if height and not width:
-        img.transform(resize='x' + str(height))
+            filename = img.split('/')[-1]
+            local = "imgs/"+filename
+            urllib.request.urlretrieve(img, local)
+            colors = subprocess.run(["identify", "-format", "%k", local],
+                                    stdout=subprocess.PIPE)
+#            os.remove(local)
+            if(colors.returncode == 0):
+                return colors.stdout
+            else:
+                abort(500)
+        except:
+            abort(500)
 
-    return img
+# @app.route('/favicon.ico/')
+# def favicon():
+#     return send_from_directory(os.path.join(app.root_path, 'static'),
+#                                'favicon.ico', mimetype='image/png')
 
-def crop(img, width=None, height=None, gravity='north_west'):
-    if not width and not height:
-        return img
-    elif width and not height:
-        height = img.height
-    elif not width and height:
-        width = img.width
+# @app.route('/<path:url>/')
+# def convert(url):
+#     query_string = request.args
+#     try:
+#         r = requests.get(url, timeout=1)
+#         filename, file_ext = os.path.splitext(os.path.basename(urlparse(url).path))
+#         if 'image' not in r.headers['content-type']:
+#             app.logger.error(url + " is not an image.")
+#             abort(400, url + " is not an image.")
+#     except:
+#         app.logger.exception("Error while getting url: " + url)
+#         abort(400, "Error while getting url: " + url)
+#     try:
+#         with Image(file=StringIO(r.content)) as img:
+#             if query_string.get('type') in ['jpeg', 'jpg', 'png', 'pjeg']:
+#                 img.format = query_string.get('type')
 
-    try:
-        img.crop(width=int(width), height=int(height), gravity=gravity)
-    except ValueError:
-        app.logger.exception("cheight: {0} or cwidth: {1} is invalid.".format(height, width))
-        abort(400, "cheight: {0} or cwidth: {1} is invalid.".format(height, width))
+#             img = resize(img, query_string.get('rwidth'), query_string.get('rheight'))
 
-    return img
+#             img = crop(img, query_string.get('cwidth'), query_string.get('cheight'), query_string.get('gravity'))
+
+#             temp_file = NamedTemporaryFile(mode='w+b',suffix=img.format)
+#             img.save(file=temp_file)
+#             temp_file.seek(0,0)
+#             response = send_file(temp_file, mimetype=img.mimetype)
+#             return response
+#     except MissingDelegateError:
+#         abort(400, 'Image is unusable')
+
+# def resize(img, width=None, height=None):
+#     if not width and not height:
+#         return img
+#     if width:
+#         try:
+#             width = int(width)
+#         except ValueError:
+#             app.logger.exception("rwidth is invalid: " + width)
+#             abort(400, "rwidth is invalid: " + width)
+#     if height:
+#         try:
+#             height = int(height)
+#         except ValueError:
+#             app.logger.exception("rheight is invalid: " + height)
+#             abort(400, "rheight is invalid: " + height)
+#     if width and height:
+#         img.resize(width, height)
+#     if width and not height:
+#         img.transform(resize=str(width))
+#     if height and not width:
+#         img.transform(resize='x' + str(height))
+
+#     return img
+
+# def crop(img, width=None, height=None, gravity='north_west'):
+#     if not width and not height:
+#         return img
+#     elif width and not height:
+#         height = img.height
+#     elif not width and height:
+#         width = img.width
+
+#     try:
+#         img.crop(width=int(width), height=int(height), gravity=gravity)
+#     except ValueError:
+#         app.logger.exception("cheight: {0} or cwidth: {1} is invalid.".format(height, width))
+#         abort(400, "cheight: {0} or cwidth: {1} is invalid.".format(height, width))
+
+#     return img
 
 
 @app.route('/health/')
